@@ -209,6 +209,7 @@ footer{max-width:1000px;margin:0 auto;padding:20px 18px 60px;color:var(--mut);fo
 <button class="tab" data-p="lit">Literature</button>
 <button class="tab" data-p="lang">Language</button>
 <button class="tab" data-p="flash">Flashcards</button>
+<button class="tab" data-p="bank">Word bank</button>
 </div></nav>
 <main>
 <section class="panel on" id="wt"></section>
@@ -218,6 +219,7 @@ footer{max-width:1000px;margin:0 auto;padding:20px 18px 60px;color:var(--mut);fo
 <section class="panel" id="lit"></section>
 <section class="panel" id="lang"></section>
 <section class="panel" id="flash"></section>
+<section class="panel" id="bank"></section>
 </main>
 <footer>Built for Harris Academy Peckham Year 11. Exam questions and mark schemes are reproduced from AQA past papers (June 2023 to June 2025) for revision. Source texts and poems that are still in copyright are not reproduced, so ask your teacher for the paper or insert. Check the details of your mock with your English teacher.</footer>
 <a href="https://geographyhub.github.io/Peckham_Hub/#english" class="phub" aria-label="Back to the Peckham Hub">&#8592; Peckham Hub</a>
@@ -994,12 +996,9 @@ renderLang();
 const DECKS={};['Act 1','Act 2','Act 3','Act 4','Act 5'].forEach(a=>DECKS['m'+a.slice(-1)]=['Macbeth '+a,()=>QUOTES.mac.filter(q=>q[0]===a).map(q=>['‘'+q[1]+'’',q[2]+'. '+q[3]])]);Object.assign(DECKS,{acc:['A Christmas Carol quotations',()=>QUOTES.acc.map(q=>['‘'+q[1]+'’',q[2]+'. '+q[3]+' Theme: '+q[0].toLowerCase()+'.'])],macctx:['Macbeth context',()=>TEXTS.mac.context.map(c=>[c[0],c[1]])],accctx:['A Christmas Carol context',()=>TEXTS.acc.context.map(c=>[c[0],c[1]])],terms:['Key terms',()=>TERMS]});
 let deckId=null,deck=[],di=0;
 function renderFlash(){
- let h=`<h2>Flashcards</h2><p class="lead">Read the front, say the answer out loud, then tap to flip. Learn quotations in short bursts, every day.</p><div class="decks">${Object.entries(DECKS).map(([k,d])=>`<button class="deck ${deckId===k?'on':''}" data-d="${k}">${d[0]}<small>${d[1]().length} cards</small></button>`).join('')}</div><div class="wbmode" id="wbmode"></div><div id="fstage"></div>`;
+ let h=`<h2>Flashcards</h2><p class="lead">Read the front, say the answer out loud, then tap to flip. Learn quotations in short bursts, every day.</p><div class="decks">${Object.entries(DECKS).map(([k,d])=>`<button class="deck ${deckId===k?'on':''}" data-d="${k}">${d[0]}<small>${d[1]().length} cards</small></button>`).join('')}</div><div id="fstage"></div>`;
  $('#flash').innerHTML=h;$$('[data-d]').forEach(b=>b.onclick=()=>{deckId=b.dataset.d;deck=shuffle(DECKS[deckId][1]());di=0;renderFlash()});
- const wbm=wbModeRow($('#wbmode'),renderFlash);
- if(!deckId)return;
- if(wbm==='bank'){wordBank($('#fstage'),DECKS[deckId][1]());return;}
- const c=deck[di];
+ if(!deckId)return;const c=deck[di];
  $('#fstage').innerHTML=`<div class="flash"><div class="fcard" id="fc" role="button" tabindex="0"><div class="face"><div class="q">${c[0]}</div><div class="hint">Tap to flip</div></div><div class="face back"><div class="a">${c[1]}</div><div class="hint">Tap to flip back</div></div></div><div class="fcp">Card ${di+1} of ${deck.length}</div><div class="fcc"><button class="btn ghost" id="fprev">Previous</button><button class="btn primary" id="fnext">Next card</button><button class="btn ghost" id="fsh">Shuffle</button></div></div>`;
  const fc=$('#fc');fc.onclick=()=>fc.classList.toggle('flip');fc.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fc.classList.toggle('flip')}};
  $('#fnext').onclick=()=>{di=(di+1)%deck.length;renderFlash()};$('#fprev').onclick=()=>{di=(di-1+deck.length)%deck.length;renderFlash()};$('#fsh').onclick=()=>{deck=shuffle(deck);di=0;renderFlash()};
@@ -1392,6 +1391,34 @@ function renderLang2(){
 }
 Object.assign(PHOTO_CAP,{fox:'A fox on a city street at night',stream:'A stream running through a meadow'});
 renderLang();
+
+</script>
+<script>
+
+function bkStrip(t){return String(t).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()}
+function bkIcon(w){ if(typeof WBICON!=='undefined') return WBICON[bkStrip(w).toLowerCase()]; if(typeof MICON!=='undefined') return MICON[w]; return null; }
+function bankList(el,cards){
+  const seen=new Set(), list=[];
+  cards.forEach(([w,d])=>{const k=bkStrip(w).toLowerCase(); if(!seen.has(k)){seen.add(k);list.push([w,d]);}});
+  list.sort((a,b)=>bkStrip(a[0]).localeCompare(bkStrip(b[0])));
+  el.innerHTML=`<label class="wbl" for="bkq">Search the word bank</label><input id="bkq" class="wbsearch" placeholder="Type a word" autocomplete="off"><div class="wbs" id="bkl"></div>`;
+  const q=el.querySelector('#bkq'), out=el.querySelector('#bkl');
+  const draw=()=>{const s=q.value.toLowerCase().trim();
+    const L=list.filter(([w,d])=>!s||bkStrip(w).toLowerCase().includes(s)||bkStrip(d).toLowerCase().includes(s));
+    out.innerHTML=L.map(([w,d])=>{const ic=bkIcon(w);
+      return `<div class="${ic?'':'noi'}">${ic?`<div class="wbi"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">${ic}</svg></div>`:''}<p><b>${w}</b>${d}</p></div>`}).join('')||'<p>No words match. Try a shorter search.</p>';};
+  q.oninput=draw; draw();
+}
+
+const BKSETS=[['Key terms',()=>TERMS]];
+let bkcur=0;
+function renderBank(){
+  $('#bank').innerHTML=`<h2>Word bank</h2><p class="lead">Every key word with a picture and its meaning. Choose a set, or search for a word.</p>
+  <div class="decks">${BKSETS.map(([n,f],i)=>`<button class="deck ${i===bkcur?'on':''}" data-bk="${i}">${n}<small>${f().length} words</small></button>`).join('')}</div><div id="bkbody"></div>`;
+  document.querySelectorAll('#bank [data-bk]').forEach(b=>b.onclick=()=>{bkcur=+b.dataset.bk;renderBank();});
+  bankList($('#bkbody'),BKSETS[bkcur][1]());
+}
+renderBank();
 
 </script>
 </body>
